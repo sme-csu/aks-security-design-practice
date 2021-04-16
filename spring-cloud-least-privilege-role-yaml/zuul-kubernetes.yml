@@ -1,0 +1,80 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    app.dekorate.io/vcs-url: test1
+    app.dekorate.io/commit-id: test2
+  labels:
+    app.kubernetes.io/name: test-zuul
+    app.kubernetes.io/version: 1.2.0.9-SNAPSHOT
+  name: test-zuul
+spec:
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+  selector:
+    app.kubernetes.io/name: test-zuul
+    app.kubernetes.io/version: 1.2.0.9-SNAPSHOT
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    app.dekorate.io/vcs-url: test
+    app.dekorate.io/commit-id: dc06b849c64d13f14cabe9f6acffba3710c9af14
+  labels:
+    app.kubernetes.io/name: test-zuul
+    app.kubernetes.io/version: 1.2.0.9-SNAPSHOT
+  name: test-zuul
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-zuul
+      app.kubernetes.io/version: 1.2.0.9-SNAPSHOT
+  template:
+    metadata:
+      annotations:
+        app.dekorate.io/vcs-url: https://dev.azure.com/sme-csu/cloud-native-apps-performance/_git/cloud-native-apps-performance-tuning.git
+        app.dekorate.io/commit-id: dc06b849c64d13f14cabe9f6acffba3710c9af14
+      labels:
+        app.kubernetes.io/name: test-zuul
+        app.kubernetes.io/version: 1.2.0.9-SNAPSHOT
+    spec:
+      containers:
+        - env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          image: test-zuul:1.2.0.9-SNAPSHOT
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /info
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 3
+          name: test-zuul
+          ports:
+            - containerPort: 9000
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 3
+      serviceAccountName: test-spring-cloud-apps-sa
